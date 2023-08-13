@@ -1,0 +1,36 @@
+DATA_ACCOUNT: 14
+DATA_FOLDER_PATH: ../../../RobustVSDataset_anonymous
+DRAW_IMAGE: true
+HR_INDEX: 0
+MODEL_TRAIN: true
+PATTERN_MODEL_TRAIN: False
+POWER_HR_DATA_FOLDER: /home/chin/Desktop/CGU/VitalSign_dataset_model/HR_Power_dataset
+POWER_READ_INDEX: 1
+RADAR_ACCOUNT: 2
+RR_INDEX: 1
+STORE_EXCEL: true
+STROE_MODEL: false
+Save_model_folder: /home/chin/Desktop/CGU/VitalSign_dataset_model/RobustVS_sourcecode/opensourced/saved_model/0503-demo
+Save_result_folder: /home/chin/Desktop/CGU/VitalSign_dataset_model/RobustVS_sourcecode/opensourced/predict_result/0503-demo
+
+loss_func: MAE
+lstm:
+  adaTrain: 1
+  attention_size: 10
+  batch_size: 8
+  dropout: 0.5
+  hidden_size: 256
+  input_size: 2
+  isBidirectional: true
+  num_layers: 2
+  nums_trans_epoch: 300
+  nums_ada_epoch: 5
+  nums_epoch: 300
+  output_size: 1
+  sequence_length: 300
+  window_size: 0
+  start_second: 30
+
+
+output_excel_name: 0510_MAE_ema_True_nor_True_noRadar.xlsx
+smooth: true

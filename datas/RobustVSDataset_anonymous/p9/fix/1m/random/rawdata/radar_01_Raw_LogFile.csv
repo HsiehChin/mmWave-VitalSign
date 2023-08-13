@@ -1,0 +1,20 @@
+Start record configuration : 
+,
+Log mode : Raw
+LVDS lane mode : 4 lane
+Record stop mode : Infinite
+Max file size (MB) : 1024,
+,*DT 1,
+,232887200,206752,
+
+Raw Data :
+Out of sequence count - 1
+Out of sequence seen from 159950 to 160093
+First Packet ID - 1
+Last Packet ID - 337583
+Number of received packets - 337441
+Number of zero filled packets - 142
+Number of zero filled bytes - 206752
+Capture start time - Wed Jul 22 17:50:15 2020
+Capture end time - Wed Jul 22 17:50:47 2020
+Duration(sec) - 32
