@@ -116,14 +116,14 @@ def vital_cali(excel_path):
     length = len(df['Tester'])
 
     new_df = {i:df[i] for i in df}
-    print(new_df)
+    # print(new_df)
 
     p = 0.4
     for i in range(length):
         ori_err = float(df['HR error'][i])
 
         hr_gt = np.array(trans_str2list(df['HR(GT)'][i]))
-        cali_hr_pred = np.array(trans_str2list(df['HR(Pred)'][i]))
+        hr_pred = np.array(trans_str2list(df['HR(Pred)'][i]))
 
         Dh = np.mean(hr_pred[:50]) - np.mean(hr_gt[:50])
 

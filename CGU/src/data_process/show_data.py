@@ -17,8 +17,6 @@ def draw_graph(pathArray, result_folder, power, ground_truth, predict, mode = 0,
             print(exc)
 
     DATA_FOLDER_PATH = os.path.abspath(os.path.join(os.getcwd(), config['DATA_FOLDER_PATH'])) 
-    Save_result_folder = os.path.abspath(os.path.join(os.getcwd(), config['Save_result_folder'])) 
-    POWER_READ_INDEX = config['POWER_READ_INDEX'] 
     # print("Power: ", power.shape)
     # print("ground_truth: ", ground_truth.shape)
     # print("predict: ", predict.shape)

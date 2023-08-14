@@ -1,32 +1,28 @@
-DATA_ACCOUNT: 14
-DATA_FOLDER_PATH: /home/chin/Desktop/CGU/lilin-vital-sign-v0.9.6-cpp/recorded_data/export/All/
-DRAW_IMAGE: true
-HR_INDEX: 0
+DATA_FOLDER_PATH: ../../datas/cgu
+
 MODEL_TRAIN: true
-POWER_HR_DATA_FOLDER: /home/chin/Desktop/CGU/VitalSign_dataset_model/HR_Power_dataset
-POWER_READ_INDEX: 0
-RADAR_ACCOUNT: 2
-RR_INDEX: 1
+DRAW_IMAGE: true
 STORE_EXCEL: true
 STROE_MODEL: false
-Save_loss_folder: /home/chin/Desktop/CGU/VitalSign_dataset_model/RobustVS_sourcecode/opensourced/result/CGU/loss_image/0627_i4_(pdI)(mI)_abs_d0.5_e3000_b8_n3
-Save_model_folder: /home/chin/Desktop/CGU/VitalSign_dataset_model/RobustVS_sourcecode/opensourced/result/CGU/model/0627_i4_(pdI)(mI)_abs_d0.5_e3000_b8_n3
-Save_result_folder: /home/chin/Desktop/CGU/VitalSign_dataset_model/RobustVS_sourcecode/opensourced/result/CGU/predict_image/0627_i4_(pdI)(mI)_abs_d0.5_e3000_b8_n3
+smooth: false
+
+Save_loss_folder: ../result/CGU/loss/0815-test
+Save_model_folder: ../result/CGU/saved_model/0815-test
+Save_result_folder: ../result/CGU/predict_result/0815-test
+output_excel_name: ../result/CGU/excel/0815-test.xlsx
 
 loss_func: MSE
 lstm:
-  adaTrain: 1
+  read_feature: 5 # read input number
+  input_size: 4 # lstm in fitness input
+  # input_size: 5  # lstm input
   attr_size: 2 # ipaq feature number
+  output_size: 1
   batch_size: 8
   dropout: 0.5
-  hidden_size: 128
-  input_size: 4 # lsmt input
+  hidden_size: 128  # lstm hidden size in fitness
+  # hidden_size: 256 # lstm hidden size
+
   isBidirectional: true
-  num_layers: 3
-  nums_epoch: 3000
-  output_size: 1
-  read_feature: 5 # read input number
-  start_second: 30
-  time_step: 60
-output_excel_name: /home/chin/Desktop/CGU/VitalSign_dataset_model/RobustVS_sourcecode/opensourced/result/CGU/excel/0627_i4_(pdI)(mI)_abs_d0.5_e3000_b8_n3.xlsx
-smooth: false
+  num_layers: 2
+  nums_epoch: 600

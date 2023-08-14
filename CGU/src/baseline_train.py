@@ -15,6 +15,7 @@ import scipy.io as sio
 from data_process.load_data import *
 from data_process.show_data import draw_graph
 from model.lstm import *
+from self_calibration import vital_cali
 
 YAML_PATH = 'configs/baseline_config.yaml'
 with open(YAML_PATH) as stream:
@@ -36,12 +37,17 @@ Save_result_folder = config['Save_result_folder']
 Save_model_folder = config['Save_model_folder']
 EXCEL_NAME = config['output_excel_name']
 
+create_folder("/".join(Save_result_folder.split("/")[:-1]))
+create_folder("/".join(Save_model_folder.split("/")[:-1]))
+create_folder("/".join(EXCEL_NAME.split("/")[:-1]))
+
 # Data account
 DATA_ACCOUNT = config['DATA_ACCOUNT']
 RADAR_ACCOUNT = config['RADAR_ACCOUNT']
 HR_INDEX = config['HR_INDEX'] # 0 read ground truth HR, 1 read ground truth RR
 RR_INDEX = config['RR_INDEX'] # 0 read ground truth HR, 1 read ground truth RR
 LOSS_TYPE = config['loss_func']
+EMA_NUM = config['smooth']
 
 # model parameters
 MODEL_INPUT = config['lstm']['input_size']
@@ -50,7 +56,16 @@ MODEL_OUTPUT = config['lstm']['output_size']
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+print("----------- Config content-----------")
+print("MODEL_TRAIN: ", MODEL_TRAIN)
+print("STORE_EXCEL: ", STORE_EXCEL)
+print("DRAW_IMAGE: ", DRAW_IMAGE)
+print("STROE_MODEL: ", STROE_MODEL)
 print("Loss function: ", LOSS_TYPE)
+print("EMA Smooth: ", EMA_NUM)
+print("-------------------------------------\n")
+
+
 
 if __name__ == '__main__':
     # Generate read path for each data(person)
@@ -137,13 +152,17 @@ if __name__ == '__main__':
             y_ada = torch.zeros(val_targets.shape)
             # print(x_ada.shape,y_ada.shape,val_inputs.shape)
             for ii in range(x_ada.shape[0]):
+                x_ada[ii,100:150,:] = val_inputs[ii,100:150,:]
+                x_ada[ii,150:200,:] = val_inputs[ii,150:200,:]
                 for jj in range(50):
                     if(opts.adaTrain > 0):
-                        x_ada[ii,200:,:] = val_inputs[ii,200:,:]
-                        y_ada[ii,250+jj] = val_targets[ii,-1] 
-                        y_ada[ii,200+jj] = val_targets[ii,-50] 
-                        # y_ada[ii,150+jj] = val_targets[ii,-100]
-                        # y_ada[ii,100+jj] = val_targets[ii,-150]
+                        # x_ada[ii,100:,:] = val_inputs[ii,100:,:]
+                        # x_ada[ii,200:,:] = val_inputs[ii,200:,:]
+                        # y_ada[ii,250+jj] = val_targets[ii,-1] 
+                        # y_ada[ii,200+jj] = val_targets[ii,-50] 
+
+                        y_ada[ii,150+jj] = val_targets[ii,150]
+                        y_ada[ii,100+jj] = val_targets[ii,100]
 
             val_inputs = val_inputs.permute(1, 0, 2)
             val_targets = val_targets.permute(1, 0, 2)
@@ -157,7 +176,7 @@ if __name__ == '__main__':
                     model.train()
                     x = x.permute(1, 0, 2)
                     y = y.permute(1, 0, 2)
-                    prediction= model(x)
+                    prediction, _ = model(x)
                     loss = loss_func(prediction, y)
                     optimizer.zero_grad()
                     loss.backward()
@@ -193,7 +212,7 @@ if __name__ == '__main__':
                     y = y.permute(1, 0, 2)
 
                     prediction= model(x)
-                    loss = loss_func(prediction[200:], y[200:])
+                    loss = loss_func(prediction[100:200], y[100:200])
                     ada_loss = loss.item()
                     optimizer.zero_grad()
                     loss.backward()
@@ -207,20 +226,26 @@ if __name__ == '__main__':
             #--------------------------------------------------------------------------------------------
             print("{0} Start to calculate the error!..........".format(name_labels[i]))
             
-            val_predict = model(val_inputs)
+            val_predict, _ = model(val_inputs)
             val_predict  = val_predict.cpu().detach().numpy()   
             val_inputs  = val_inputs.cpu().detach().numpy()   
             val_targets = val_targets.cpu().detach().numpy()
                     
-            
-            norm_val_targets = np.transpose(val_targets, (1, 0, 2))
-            norm_val_predict = np.transpose(val_predict, (1, 0, 2))
+            # EMA Smooth
+            if EMA_NUM!=-1:
+                tmp_predict = []
+                for ti in range(val_predict.shape[1]):
+                    pre = val_predict[:, ti, 0]
+                    tmp = pd.DataFrame(pre)
+                    tmp = tmp.ewm(span=EMA_NUM).mean()
+                    tmp_predict.append(tmp)
+                val_predict = np.array(tmp_predict)
 
             val_targets = np.transpose(val_targets, (1, 0, 2))
-            val_predict = np.transpose(val_predict, (1, 0, 2))
+            if not (EMA_NUM!=-1): val_predict = np.transpose(val_predict, (1, 0, 2))
 
             if DRAW_IMAGE:
-                draw_graph(test_path_array, Save_result_folder, PowerTest, VitalTest, val_predict, 1)
+                draw_graph(test_path_array, Save_result_folder, PowerTest, VitalTest, val_predict, 1, yaml_path=YAML_PATH)
 
 
             hr_all, hr_static, hr_move = 0, 0, 0
@@ -328,12 +353,12 @@ if __name__ == '__main__':
                             all_p_MSE_hr[m][r].append(sum_r)
             
             
-            print("Output excel...")
+            print("Output excel...\n")
             df = pd.DataFrame(output_result)
             writer = pd.ExcelWriter(EXCEL_NAME, engine='xlsxwriter')
             df.to_excel(writer, index=False)
             writer.save()
-    
+            print("---------------------------------\n")
     if STORE_EXCEL:
         {"amb":{"all":[],"fb":[], "lr":[]},
              "per":{"1m":[],"2m":[], "3m":[]},
@@ -371,10 +396,6 @@ if __name__ == '__main__':
                                       "{0:.2f}".format((ran_1+ran_2+ran_3)/(ran_1_c+ran_2_c+ran_3_c))]
         
         output_result1['All'] = [" ", " ", " ", "{0:.2f}".format(np.mean(average[2]))]
-        output_result1['Static error'] = ["{0:.0f}".format(np.mean(average[0])), " ", " ", " "]
-        output_result1['Move error'] = ["{0:.0f}".format(np.mean(average[1])), " ", " ", " "]
-        output_result1['First HR'] = ["{0:.0f}-{1:.0f}".format(int(np.min(hr_range[0])), int(np.max(hr_range[0]))), " ", " ", " "]
-        output_result1['Max HR'] = ["{0:.0f}-{1:.0f}".format(int(np.min(hr_range[1])), int(np.max(hr_range[1]))), " ", " ", " "]
 
         df = pd.DataFrame(output_result)
         df1 = pd.DataFrame(output_result1)
@@ -388,3 +409,6 @@ if __name__ == '__main__':
         for name in model_list:
             tmp_name = name.replace("/","")
             save_model(model_list[name], Save_model_folder, tmp_name)
+
+    
+    vital_cali(EXCEL_NAME)

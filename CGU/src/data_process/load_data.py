@@ -28,6 +28,12 @@ def read_model(Folder_path, model_name):
     return model
 
 
+def create_folder(result_folder):
+    if not os.path.exists(result_folder):
+        print("Make dir: ", result_folder)
+        os.makedirs(result_folder)
+
+
 def data_interpolate(data, total_num):
     tmp_data = data.copy()
     int_tmp_data = np.array([int(i) for i in tmp_data])
@@ -55,6 +61,15 @@ def gene_read_path(radar_account, data_type):
         name = "{0}{1}{2}".format(data_type[0], str(i).rjust(2,'0'), data_type[1])
         file_name_list.append(name)
     return file_name_list
+
+
+def Min_Max_Normalization(x):
+    max_v = np.max(x)
+    min_v = np.min(x)
+    # norm_x = (x-min_v)/(max_v-min_v)
+    norm_x = (x-np.min(x))/(np.max(x)-np.min(x))
+    # return norm_x, np.max(x), np.min(x)
+    return norm_x, max_v, min_v
 
 
 def ZscoreNormalization(x):
@@ -156,8 +171,18 @@ def get_move_status(power, flag=0):
         status[60:120] = 1    
         status[120:180] = 2   
         status[180:] = -1           
-
-    
+    elif flag ==3: # for baseline
+        move_count = 0
+        tmp_p, _, _ = ZscoreNormalization(power)
+        for pi, p in enumerate(tmp_p):
+            if p > 0:
+                status[pi] = 1 # move
+                move_count +=1
+            else:
+                status[pi] = 0 # static
+                if move_count > 0:
+                    move_count -= 1
+                    status[pi] = 1 # still move
     return status
 
 
@@ -224,6 +249,7 @@ def generate_dataset(Root_folder_path, data_folders, file_name, input_size=2, ou
             p = power[i, : ,1]
             status = get_move_status(p, flag=3)
             weight = get_time_weighted(p, status)
+            # print(status)
             move_status.append(status)
             move_weight.append(weight)
         move_status = np.array(move_status)
@@ -287,7 +313,7 @@ def get_flag(name, motion):
 
 # Exponential moving average for ground truth HR,
 # To smooth the meandering curve of ground truth.  
-def HR_EMA(hr, flag=0, type=0):
+def HR_EMA(hr, ema_num, flag=0, type=0):
     if type==0:
         if flag == 0: # for 3 min static, 1 min jump
             pass

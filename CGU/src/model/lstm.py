@@ -30,7 +30,7 @@ class LSTM(nn.Module):
         r_out,_ = self.lstm(sequence)
         out = self.out(r_out)
 
-        return out
+        return out, None
         
 
 # LSTM fitness model

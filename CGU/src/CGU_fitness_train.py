@@ -19,14 +19,14 @@ from model.lstm import *
 from self_calibration import CGU_cali
 
 
-YAML_PATH = 'configs/config_CGU_fitness.yaml'
+YAML_PATH = 'configs/CGU_fitness_config.yaml'
 with open(YAML_PATH) as stream:
     try:
         config = yaml.full_load(stream)
     except yaml.YAMLError as exc:
         print(exc)
 
-PATTERN_MODEL_TRAIN = config['PATTERN_MODEL_TRAIN']
+# Function switches
 MODEL_TRAIN = config['MODEL_TRAIN']
 STORE_EXCEL = config['STORE_EXCEL']
 DRAW_IMAGE = config['DRAW_IMAGE']
@@ -38,45 +38,43 @@ DATA_FOLDER_PATH = os.path.abspath(os.path.join(os.getcwd(), config['DATA_FOLDER
 # Save predict folder
 Save_result_folder = config['Save_result_folder']
 Save_model_folder = config['Save_model_folder']
+EXCEL_NAME = config['output_excel_name']
 
-# Data account
-DATA_ACCOUNT = config['DATA_ACCOUNT']
-RADAR_ACCOUNT = config['RADAR_ACCOUNT']
-HR_INDEX = config['HR_INDEX'] # 0 read ground truth HR, 1 read ground truth RR
-RR_INDEX = config['RR_INDEX'] # 0 read ground truth HR, 1 read ground truth RR
+create_folder("/".join(Save_result_folder.split("/")[:-1]))
+create_folder("/".join(Save_model_folder.split("/")[:-1]))
+create_folder("/".join(EXCEL_NAME.split("/")[:-1]))
 
-POWER_READ_INDEX = config['POWER_READ_INDEX']
-
-INPUT_SIZE = config['lstm']['input_size']
 
 # model parameters
 MODEL_INPUT = config['lstm']['read_feature']
+INPUT_SIZE = config['lstm']['input_size']
 ATTR_INPUT = config['lstm']['attr_size']
 MODEL_OUTPUT = config['lstm']['output_size']
 
 LOSS_TYPE = config['loss_func']
 EMA_FLAG = config['smooth']
 
-print("feature all size: ", MODEL_INPUT)
+
+print("----------- Config content-----------")
+print("MODEL_TRAIN: ", MODEL_TRAIN)
+print("STORE_EXCEL: ", STORE_EXCEL)
+print("DRAW_IMAGE: ", DRAW_IMAGE)
+print("STROE_MODEL: ", STROE_MODEL)
+print("Loss function: ", LOSS_TYPE)
+print("EMA Smooth: ", EMA_FLAG)
+
+print("Read dataset feature size: ", MODEL_INPUT)
 print("Lstm input size: ", INPUT_SIZE)
 print("Lstm attr size: ", ATTR_INPUT)
 
-print("Loss function: ", LOSS_TYPE)
-print("Predict Smooth: ", EMA_FLAG)
-
-EXCEL_NAME = config['output_excel_name']
-
+print("-------------------------------------\n")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def train():
 
-    # model, opts = lstm_model(YAML_PATH)
-    # model.to(device)
-
+if __name__ == '__main__':
     # CGU dataset
     name_labels = get_dataset_tester(DATA_FOLDER_PATH)
-    print("Total test: ", len(name_labels))
     
     average = [[],[], []] # static, move, all
     move_average = [[], []] #jump, ride
@@ -94,29 +92,27 @@ def train():
                      "HR error":[],
                      "First HR":[],
                      "Max HR":[],
-                     "Euclidean distance":[],
-                     "Correlation coefficient":[],
-                     "DTW distance":[],
-                     "Cosine similarity":[],
                      }
     model_list = {}
 
     # Cross-validation len(name_labels)
     name_labels = list(name_labels)
-    name_labels = name_labels[:]
-    name_labels.sort(reverse=True)
     # name_labels.sort(reverse=True)
-    print(name_labels)
+    all_data_length = len(name_labels)
+    t_num = all_data_length    
+    # t_num = 73 # for train part dataset
+
+    print("Total test: ", len(name_labels[:t_num]))
+    print("Testers: ", name_labels[:t_num])
     Radar_all_test = np.array([0])
 
-    all_data_length = len(name_labels)
-    for ni in range(all_data_length):
+    for ni in range(t_num):
         # Choose which to train, which to test
         test_name = [name_labels[ni]]
         train_name = []
-        for k in range(all_data_length):
-            # if i!= k:
-            train_name.append(name_labels[k])
+        for k in range(t_num):
+            if name_labels[ni]!= name_labels[k]:
+                train_name.append(name_labels[k])
 
         # Prepare Train data
         PowerTrain_ori, VitalTrain_ori, train_path_array, radar_hr, _  = generate_data_CGU_fitness(DATA_FOLDER_PATH, train_name, input_size=MODEL_INPUT-ATTR_INPUT, output_size=MODEL_OUTPUT)        
@@ -129,7 +125,6 @@ def train():
         PowerTest = PowerTest_ori.copy()
         PowerTest[:, :, :MODEL_INPUT-ATTR_INPUT], _, _ = Power_HR_Normalization(PowerTest[:, :, :MODEL_INPUT-ATTR_INPUT])
         VitalTest = VitalTest_ori
-
 
         Radar_all_test = radar_hr if Radar_all_test.any() == 0 else np.concatenate((Radar_all_test, radar_hr), axis = 0)
 
@@ -229,7 +224,8 @@ def train():
             print("Test shape: ", val_predict.shape)
 
             if DRAW_IMAGE:
-                draw_hidden_graph(name_labels[ni], predict_hidden, yaml_path=YAML_PATH)
+                if predict_hidden:
+                    draw_hidden_graph(name_labels[ni], predict_hidden, yaml_path=YAML_PATH)
                 # draw_loss_graph(name_labels[ni], train_list, val_list, yaml_path=YAML_PATH)
                 draw_graph_CGU_fitness(test_path_array, PowerTest_ori, PowerTest, VitalTest_ori, val_predict, yaml_path=YAML_PATH)
 
@@ -297,7 +293,6 @@ def train():
                 # output excel
                 output_result['HR(GT)'].append(trans_list2str(val_targets[pi,:, 0]))
                 output_result['HR(Pred)'].append(trans_list2str(val_predict[pi,:, 0]))
-                # output_result['static HR error'].append("{0:.2f}".format(static_error))
                 output_result['move HR error'].append("{0:.2f}".format(move_error))
                 output_result['HR error'].append("{0:.2f}".format(move_error))
 
@@ -317,7 +312,6 @@ def train():
 
     if MODEL_TRAIN and STORE_EXCEL:
     
-        # print("\nStatic: {0:.2f}, {1:.2f}, {2:.2f}".format(np.mean(average[0]), np.min(average[0]), np.max(average[0])))
         print("Move: {0:.2f}, {1:.2f}, {2:.2f}".format(np.sum(average[1])/len(average[1]), np.min(average[1]), np.max(average[1])))
         print("Average: {0:.2f}, {1:.2f}, {2:.2f}".format(np.sum(average[2])/len(average[2]), np.min(average[2]), np.max(average[2])))
         print("Jump error: {0:.2f}, {1:.2f}, {2:.2f}".format(np.sum(move_average[0])/len(move_average[0]), np.min(move_average[0]), np.max(move_average[0])))
@@ -331,7 +325,6 @@ def train():
         output_result["motion"].append("")
         output_result['HR(GT)'].append("")
         output_result['HR(Pred)'].append("")
-        # output_result['static HR error'].append("{0:.2f}".format(np.sum(average[0])))
         output_result['move HR error'].append("{0:.2f}".format(np.sum(average[1])/len(average[1])))
         output_result['HR error'].append("{0:.2f}".format(np.sum(average[2])/len(average[2])))
         output_result['First HR'].append("{0:.0f}-{1:.0f}".format(int(np.min(hr_range[0])), int(np.max(hr_range[0]))))
@@ -340,12 +333,10 @@ def train():
 
         df = pd.DataFrame(output_result)
         df1 = pd.DataFrame({
-                            # "Static":       ["{0:.2f}".format(np.mean(average[0]))],
                             "Move":	        ["{0:.2f}".format(np.sum(average[1])/len(average[1]))],
                             "Average":	    ["{0:.2f}".format(np.sum(average[2])/len(average[2]))],
                             "Jump error":	["{0:.2f}".format(np.sum(move_average[0])/len(move_average[0]))],
                             "Ride error":	["{0:.2f}".format(np.sum(move_average[1])/len(move_average[1]))],
-                            "觀察":          [""],
                             "start HR":     ["{0:.0f}-{1:.0f}".format(int(np.min(hr_range[0])), int(np.max(hr_range[0])))],
                             "Max HR":   	["{0:.0f}-{1:.0f}".format(int(np.min(hr_range[1])), int(np.max(hr_range[1])))],
                             })
@@ -359,16 +350,8 @@ def train():
     result_models_paths = {}
     if MODEL_TRAIN and STROE_MODEL:
         for name in model_list:
-            path = "{0}/0622_CGU_{1}.pt".format(Save_model_folder, name)
+            path = "{0}/{1}.pt".format(Save_model_folder, name)
             result_models_paths[name] = path
-            save_model(model_list[name], Save_model_folder, "0622_CGU_{}".format(name))
+            save_model(model_list[name], Save_model_folder, "{}".format(name))
    
     CGU_cali(EXCEL_NAME)
-    # CGU_cali(EXCEL_NAME, Radar_all_test)
-
-    return result_models_paths
-
-
-
-if __name__ == '__main__':
-    result_models = train()
