@@ -16,7 +16,7 @@ from data_process.load_data import *
 from data_process.show_data import *
 
 from model.lstm import *
-from pre_calibration import CGU_cali
+from self_calibration import CGU_cali
 
 
 YAML_PATH = 'configs/config_CGU_fitness.yaml'
