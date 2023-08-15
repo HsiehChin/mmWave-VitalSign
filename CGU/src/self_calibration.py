@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 from data_process.load_data import *
 
@@ -110,17 +109,23 @@ def get_radar_data(t, m):
 
 # Baseline self calibration
 def vital_cali(excel_path):
-    print(excel_path+": Output calibration...")
+    print("\n........... Pre-Exercise Calibration ...........")
+    print("Read Excel:", excel_path)
+    
     output_name = excel_path.replace(".xlsx", "-cali.xlsx")
     df = pd.read_excel(excel_path, sheet_name="All")
     length = len(df['Tester'])
 
-    new_df = {i:df[i] for i in df}
+    new_df = {i:[] for i in df}
     # print(new_df)
 
     p = 0.4
     for i in range(length):
-        ori_err = float(df['HR error'][i])
+        tester = df['Tester'][i]
+        motion = df['motion'][i]        
+        range_raw = df['range'][i]
+
+        hr_gt_raw = df['HR(GT)'][i]
 
         hr_gt = np.array(trans_str2list(df['HR(GT)'][i]))
         hr_pred = np.array(trans_str2list(df['HR(Pred)'][i]))
@@ -130,15 +135,18 @@ def vital_cali(excel_path):
         hr_pred = hr_pred - Dh*p
         
         error = np.sum(np.abs(hr_gt[:]-hr_pred[:]))/len(hr_gt[:])
-        # print("Ori Error: {:.2f}, Error: {:.1f}".format(ori_err, error))
 
         # New setting
-        new_df['HR(Pred)'][i] = trans_list2str(hr_pred)
-        new_df['static HR error'][i] = np.mean(np.abs(hr_gt[:110]-hr_pred[:110]))
-        new_df['move HR error'][i] = error
-        new_df['HR error'][i] = error
-        new_df['First HR'][i] = hr_pred[0]
-        new_df['Max HR'][i] = np.max(hr_pred)
+        new_df['Tester'].append(tester)
+        new_df['motion'].append(motion)        
+        new_df['range'].append(range_raw)
+        new_df['HR(GT)'].append(hr_gt_raw)
+        new_df['HR(Pred)'].append(trans_list2str(hr_pred))
+        new_df['static HR error'].append(np.mean(np.abs(hr_gt[:110]-hr_pred[:110])))
+        new_df['move HR error'].append(error)
+        new_df['HR error'].append(error)
+        new_df['First HR'].append(hr_pred[0])
+        new_df['Max HR'].append(np.max(hr_pred))
 
 
     err_all = np.array(new_df['HR error'], dtype=float)
@@ -208,12 +216,16 @@ def vital_cali(excel_path):
     writer = pd.ExcelWriter(output_name, engine='xlsxwriter')
     df1.to_excel(writer, sheet_name="Result", index=False)
     df.to_excel(writer, sheet_name="All", index=False)
-    writer.save()
+    writer.close()
+    
+    print("Output calibration excel:", output_name)
+
 
 
 # CGU self calibration, then output new excel
 def CGU_cali(excel_path, cali_flag=0):
-    print(excel_path+": Output calibration...")
+    print("\n........... Pre-Exercise Calibration ...........")
+    print("Read Excel:", excel_path)
     
     output_name = excel_path.replace(".xlsx", "-cali.xlsx")
     
@@ -227,16 +239,16 @@ def CGU_cali(excel_path, cali_flag=0):
     # genders = get_gender()
     # static_hr = [[], [], [], []] # ori, cali, male. female
 
-    new_df = {i:df[i] for i in df}
+    new_df = {i:[] for i in df}
 
     p = 0.4
     for i in range(length):
         tester = df['Tester'][i]
         motion = df['motion'][i]
-
+        hr_gt_raw = df['HR(GT)'][i]
         radar_hr = get_radar_data(tester, motion)
 
-        hr_gt = np.array(trans_str2list(df['HR(GT)'][i]))
+        hr_gt = np.array(trans_str2list(hr_gt_raw))
 
         if cali_flag == 0:
             cali_hr = hr_gt
@@ -285,13 +297,18 @@ def CGU_cali(excel_path, cali_flag=0):
         # print("Ori Error: {:.2f}, Error: {:.1f}".format(ori_err, error))
 
         # New setting
-        new_df['HR(Pred)'][i] = trans_list2str(cali_hr_pred)
-        new_df['move HR error'][i] = move_error
-        new_df['HR error'][i] = move_error
-        new_df['First HR'][i] = cali_hr_pred[0]
-        new_df['Max HR'][i] = np.max(cali_hr_pred)
+        new_df['Tester'].append(tester)
+        new_df['motion'].append(motion)
+        new_df['HR(GT)'].append(hr_gt_raw)
+        new_df['HR(Pred)'].append(trans_list2str(cali_hr_pred))
+        new_df['move HR error'].append(move_error)
+        new_df['HR error'].append(move_error)
+        new_df['First HR'].append(cali_hr_pred[0])
+        new_df['Max HR'].append(np.max(cali_hr_pred))
 
     # -----------------
+
+
     err_all = np.array(new_df['HR error'], dtype=float)
     err_m_all = np.array(new_df['move HR error'], dtype=float)
 
@@ -309,21 +326,19 @@ def CGU_cali(excel_path, cali_flag=0):
         else:
             ride.append(err_m)
 
-        df = pd.DataFrame(new_df)
-        df1 = pd.DataFrame({
-                            "Move":	        ["{0:.2f}".format(np.sum(err_m_all)/len(err_m_all))],
-                            "Average":	    ["{0:.2f}".format(np.sum(err_all)/len(err_all))],
-                            "Jump error":	["{0:.2f}".format(np.sum(jump)/len(jump))],
-                            "Ride error":	["{0:.2f}".format(np.sum(ride)/len(ride))],
-                            "Euclidean distance": ["{0:.2f}".format(np.sum(eu_ds)/len(eu_ds))],
-                            "Correlation coefficient": ["{0:.2f}".format(np.sum(ccs)/len(ccs))],
-                            "DTW distance": ["{0:.2f}".format(np.sum(dds)/len(dds))],
-                            })
+    df = pd.DataFrame(new_df)
+    df1 = pd.DataFrame({
+                        "Move":	        ["{0:.2f}".format(np.sum(err_m_all)/len(err_m_all))],
+                        "Average":	    ["{0:.2f}".format(np.sum(err_all)/len(err_all))],
+                        "Jump error":	["{0:.2f}".format(np.sum(jump)/len(jump))],
+                        "Ride error":	["{0:.2f}".format(np.sum(ride)/len(ride))],
+                        })
         
-        writer = pd.ExcelWriter(output_name, engine='xlsxwriter')
-        df1.to_excel(writer, sheet_name="Result",index=False)
-        df.to_excel(writer, sheet_name="All",index=False)
-        writer.save()
+    writer = pd.ExcelWriter(output_name, engine='xlsxwriter')
+    df1.to_excel(writer, sheet_name="Result",index=False)
+    df.to_excel(writer, sheet_name="All",index=False)
+    writer.close()
+    print("Output calibration excel:", output_name)
 
     # print("For 實驗用：", len(static_hr[0]))
     # print("Static Error: ", sum(static_hr[0])/len(static_hr[0]))
@@ -346,9 +361,6 @@ def CGU_split_round(excel_path):
     err_all = np.array(df['HR error'], dtype=float)
     ride = [[], [], []] 
     jump = [[], [], []]
-    eu_ds = []
-    ccs = [] 
-    dds = [] 
 
     genders = get_gender()
     static_hr = [[], [], [], []] # ori, cali, male. female
@@ -403,4 +415,6 @@ def CGU_split_round(excel_path):
     df = pd.DataFrame(new_df)    
     writer = pd.ExcelWriter(output_name, engine='xlsxwriter')
     df.to_excel(writer, sheet_name="Result",index=False)
-    writer.save()    
+    writer.close()
+    
+    print("Output split round excel:", output_name)
