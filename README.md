@@ -68,7 +68,7 @@ In the CGU dataset, the training data includes two .csv files.
 |:------:|:-------------------------------------------------------------------------------------------------------:|
 | Tester |                                                Tester ID                                                |
 |  Class | Fitness category: divided into "Low", "Moderate", "High",  corresponding to the numbers 1, 2, 3 respectively. |
-|  Score |    Fitness score: a quantified score based on the amount of exercise in a week. Participant's gender.   |
+|  Score |    Fitness score: a quantified score based on the amount of exercise in a week.  |
 | Gender |                                           Participant's gender                                          |
 
 ## Run
