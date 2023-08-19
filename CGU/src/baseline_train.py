@@ -1,16 +1,9 @@
 import os, yaml
 import numpy as np
-from tqdm import tqdm
-from time import sleep
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.autograd import Variable
 import torch.utils.data as Data
-from scipy.io import loadmat
-import scipy.io as sio
+
 
 from data_process.load_data import *
 from data_process.show_data import draw_graph
@@ -119,7 +112,8 @@ if __name__ == '__main__':
         PowerTest_ori, VitalTest, test_path_array, _ = generate_dataset(DATA_FOLDER_PATH, test_name, file_name, MODEL_INPUT, MODEL_OUTPUT)
         PowerTest, _, _ = Power_HR_Normalization(PowerTest_ori)
 
-        print("{0} Read file success!".format(name_labels[i]))
+        print("\n{0} Read file success! ({1}/{2})".format(name_labels[i], i+1, all_data_length))
+
         print("Train shape:", PowerTrain.shape)
         print("Vtial train shape:", VitalTrain.shape)
         print("Test shape:", PowerTest.shape)
@@ -154,13 +148,12 @@ if __name__ == '__main__':
             for ii in range(x_ada.shape[0]):
                 x_ada[ii,100:150,:] = val_inputs[ii,100:150,:]
                 x_ada[ii,150:200,:] = val_inputs[ii,150:200,:]
+                # x_ada[ii,100:,:] = val_inputs[ii,100:,:]
+                # x_ada[ii,200:,:] = val_inputs[ii,200:,:]
                 for jj in range(50):
                     if(opts.adaTrain > 0):
-                        # x_ada[ii,100:,:] = val_inputs[ii,100:,:]
-                        # x_ada[ii,200:,:] = val_inputs[ii,200:,:]
-                        # y_ada[ii,250+jj] = val_targets[ii,-1] 
+                        # y_ada[ii,250+jj] = val_targets[ii,-100] 
                         # y_ada[ii,200+jj] = val_targets[ii,-50] 
-
                         y_ada[ii,150+jj] = val_targets[ii,150]
                         y_ada[ii,100+jj] = val_targets[ii,100]
 
@@ -186,7 +179,7 @@ if __name__ == '__main__':
 
                 model.eval()
                 with torch.no_grad():
-                    val_predict = model(val_inputs)
+                    val_predict, _ = model(val_inputs)
                     loss_ = loss_func(val_predict, val_targets)
                     val_loss += loss_.item()
                     val_count+=1
@@ -204,15 +197,17 @@ if __name__ == '__main__':
                             batch_size=opts.batch_size,      # mini batch size
                             shuffle=True,                            
                         )
-            for epoch in range(0, opts.nums_ada_epoch+1):
+            for epoch in range(1, opts.nums_ada_epoch+1):
                 for step, (x, y) in enumerate(loader1):
                     model.zero_grad()
                     model.train()
                     x = x.permute(1, 0, 2)
                     y = y.permute(1, 0, 2)
 
-                    prediction= model(x)
+                    prediction, _ = model(x)
+                    # loss = loss_func(prediction[200:], y[200:])
                     loss = loss_func(prediction[100:200], y[100:200])
+
                     ada_loss = loss.item()
                     optimizer.zero_grad()
                     loss.backward()
@@ -254,7 +249,7 @@ if __name__ == '__main__':
                 path = test_path_array[pi]
                 first_hr = val_predict[pi, 0, 0]
                 max_hr = np.max(val_predict[pi,:, 0])
-                # print("Test {0} , \nPredict value: Start HR: {1:.2f}, Max: {2:.2f}".format(pi+1, first_hr, max_hr))
+                print("Test {0} , \nPredict value: Start HR: {1:.2f}, Max: {2:.2f}".format(pi+1, first_hr, max_hr))
 
                 hr_range[0].append(first_hr)
                 hr_range[1].append(max_hr)
@@ -275,7 +270,7 @@ if __name__ == '__main__':
                 hr_move += move_error
                 m_count +=1
                 
-                # print("HR Error : All: {3:.2f}, static: {1:.2f}, move: {2:.2f}".format(pi, error_hr, static_error, move_error))
+                print("HR Error : {:.2f}".format(error_hr))
 
                 model_list[test_name[0]] = model
                 if s_count!=0:
@@ -403,7 +398,7 @@ if __name__ == '__main__':
         writer = pd.ExcelWriter(EXCEL_NAME, engine='xlsxwriter')
         df1.to_excel(writer, sheet_name="Result",index=False)
         df.to_excel(writer, sheet_name="All",index=False)
-        writer.save()
+        writer.close()
 
     if STROE_MODEL:
         for name in model_list:

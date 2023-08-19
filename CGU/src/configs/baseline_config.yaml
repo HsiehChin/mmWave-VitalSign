@@ -1,30 +1,26 @@
 DATA_ACCOUNT: 14
 DATA_FOLDER_PATH: ../../datas/RobustVSDataset_anonymous
-
+DRAW_IMAGE: true
 HR_INDEX: 0
+MODEL_TRAIN: true
 POWER_READ_INDEX: 1
 RADAR_ACCOUNT: 2
 RR_INDEX: 1
-
-DRAW_IMAGE: true
-MODEL_TRAIN: true
 STORE_EXCEL: true
 STROE_MODEL: true
-Save_model_folder: ../result/Baseline/saved_model/0814-0.2-e1000-test
-Save_result_folder: ../result/Baseline/predict_result/0814-0.2-e1000-test
-output_excel_name: ../result/Baseline/excel/0814-0.2-e1000-test.xlsx
-
+Save_model_folder: ../result/Baseline/saved_model/0815-0.5-e1000-test
+Save_result_folder: ../result/Baseline/predict_result/0819_i2pd_e1000_d0.5
 loss_func: MSE
 lstm:
   adaTrain: 1
   batch_size: 8
-  dropout: 0.2
+  dropout: 0.5
   hidden_size: 256
-  input_size: 3 # power + distance + move curve
+  input_size: 2
   isBidirectional: true
   num_layers: 2
   nums_ada_epoch: 5
   nums_epoch: 1000
   output_size: 1
-
+output_excel_name: ../result/Baseline/excel/0819_i2pd_e1000_d0.5.xlsx
 smooth: 5

@@ -276,7 +276,7 @@ def generate_dataset(Root_folder_path, data_folders, file_name, input_size=2, ou
                 if input_size ==1:
                     reshape_input[k].append([tmp_p[k, n, 1]])#[Power]
                 elif input_size == 2:
-                    reshape_input[k].append([tmp_p[k, n, 1:]])#[Power, distance]
+                    reshape_input[k].append(tmp_p[k, n, 1:])#[Power, distance]
                 elif input_size == 3:
                     reshape_input[k].append(np.append(tmp_p[k, n, 1:], move_weight[k, n]))#[Power, distance, move_weight]                  
           
@@ -339,8 +339,9 @@ def HR_EMA(hr, ema_num, flag=0, type=0):
             hr[70:] = tmp[0]
     else:
         tmp = pd.DataFrame(hr)
-        tmp = tmp.ewm(span=20).mean()
+        tmp = tmp.ewm(span=ema_num).mean()
         hr = tmp[0]
+
 
     return np.array(hr)
 

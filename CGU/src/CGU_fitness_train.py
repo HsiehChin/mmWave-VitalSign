@@ -1,16 +1,9 @@
 import time
 import os, yaml
 import numpy as np
-from time import sleep
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.autograd import Variable
 import torch.utils.data as Data
-from scipy.io import loadmat
-import scipy.io as sio
 
 from data_process.load_data import *
 from data_process.show_data import *
@@ -52,7 +45,7 @@ ATTR_INPUT = config['lstm']['attr_size']
 MODEL_OUTPUT = config['lstm']['output_size']
 
 LOSS_TYPE = config['loss_func']
-EMA_FLAG = config['smooth']
+EMA_NUM = config['smooth']
 
 
 print("----------- Config content-----------")
@@ -61,7 +54,7 @@ print("STORE_EXCEL: ", STORE_EXCEL)
 print("DRAW_IMAGE: ", DRAW_IMAGE)
 print("STROE_MODEL: ", STROE_MODEL)
 print("Loss function: ", LOSS_TYPE)
-print("EMA Smooth: ", EMA_FLAG)
+print("EMA Smooth: ", EMA_NUM)
 
 print("Read dataset feature size: ", MODEL_INPUT)
 print("Lstm input size: ", INPUT_SIZE)
@@ -128,7 +121,7 @@ if __name__ == '__main__':
 
         Radar_all_test = radar_hr if Radar_all_test.any() == 0 else np.concatenate((Radar_all_test, radar_hr), axis = 0)
 
-        print("\n{0} Read file success!".format(name_labels[ni]))
+        print("\n{0} Read file success! ({1}/{2})".format(name_labels[ni], ni+1, t_num))
         print("Power train shape:", PowerTrain.shape)
         print("Heart train shape:", VitalTrain.shape)
         print("Power test shape:", PowerTest.shape) 
@@ -167,7 +160,8 @@ if __name__ == '__main__':
             val_targets = val_targets.permute(1, 0, 2)
 
             # begin train
-            print("{0} Start to train!..........".format(name_labels[ni]))
+            print("\n{0} Read file success! ({1}/{2})".format(name_labels[ni], ni+1, all_data_length))
+
             start_time = time.time()
             for epoch in range(0, opts.nums_epoch+1):
                 for step, (x, y) in enumerate(loader):
@@ -217,9 +211,18 @@ if __name__ == '__main__':
             val_inputs  = val_inputs.cpu().detach().numpy()           
             val_targets = val_targets.cpu().detach().numpy()
 
+            # EMA Smooth
+            if EMA_NUM!=-1:
+                tmp_predict = []
+                for ti in range(val_predict.shape[1]):
+                    pre = val_predict[:, ti, 0]
+                    tmp = pd.DataFrame(pre)
+                    tmp = tmp.ewm(span=EMA_NUM).mean()
+                    tmp_predict.append(tmp)
+                val_predict = np.array(tmp_predict)
 
             val_targets = np.transpose(val_targets, (1, 0, 2))
-            val_predict = np.transpose(val_predict, (1, 0, 2))
+            if not (EMA_NUM!=-1): val_predict = np.transpose(val_predict, (1, 0, 2))
 
             print("Test shape: ", val_predict.shape)
 
@@ -233,11 +236,6 @@ if __name__ == '__main__':
             s_count, m_count = 0, 0
             for pi in range(val_predict.shape[0]):
                 path = test_path_array[pi]
-
-                if EMA_FLAG:
-                    flag = get_flag(name_labels[ni], motion_list[pi])
-                    ema_hr = HR_EMA(val_predict[pi, :, 0], flag, type=1)
-                    val_predict[pi, :, 0] = np.array(ema_hr)
                                 
                 first_hr = val_predict[pi, 0, 0]
                 max_hr = np.max(val_predict[pi,:, 0])
@@ -344,7 +342,7 @@ if __name__ == '__main__':
         writer = pd.ExcelWriter(EXCEL_NAME, engine='xlsxwriter')
         df1.to_excel(writer, sheet_name="Result",index=False)
         df.to_excel(writer, sheet_name="All",index=False)
-        writer.save()
+        writer.close()
 
     #----------------- Save model parameters -----------------
     result_models_paths = {}

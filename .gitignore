@@ -166,3 +166,6 @@ cython_debug/
 excel/
 predict_result/
 saved_model/
+
+*_series_train.py
+

@@ -1,28 +1,22 @@
 DATA_FOLDER_PATH: ../../datas/cgu
-
-MODEL_TRAIN: true
 DRAW_IMAGE: true
+MODEL_TRAIN: true
 STORE_EXCEL: true
-STROE_MODEL: false
-smooth: false
-
-Save_loss_folder: ../result/CGU/loss/0815-test
-Save_model_folder: ../result/CGU/saved_model/0815-test
-Save_result_folder: ../result/CGU/predict_result/0815-test
-output_excel_name: ../result/CGU/excel/0815-test.xlsx
-
+STROE_MODEL: true
+Save_loss_folder: ../result/CGU/loss/0820_(pdmI)_e5_d300_h256_no_ema
+Save_model_folder: ../result/CGU/saved_model/0820_(pdmI)_e5_d300_h256_no_ema
+Save_result_folder: ../result/CGU/predict_result/0820_(pdmI)_e5_d300_h256_no_ema
 loss_func: MSE
 lstm:
-  read_feature: 5 # read input number
-  input_size: 4 # lstm in fitness input
-  # input_size: 5  # lstm input
-  attr_size: 2 # ipaq feature number
-  output_size: 1
+  attr_size: 2
   batch_size: 8
-  dropout: 0.5
-  hidden_size: 128  # lstm hidden size in fitness
-  # hidden_size: 256 # lstm hidden size
-
+  dropout: 0.3
+  hidden_size: 256
+  input_size: 5
   isBidirectional: true
   num_layers: 2
-  nums_epoch: 600
+  nums_epoch: 300
+  output_size: 1
+  read_feature: 5
+output_excel_name: ../result/CGU/excel/0820_(pdmI)_e5_d300_h256_no_ema.xlsx
+smooth: 20
