@@ -545,7 +545,7 @@ def generate_data_CGU_fitness(DATA_FOLDER_PATH, name_label, input_size=3, output
         HR = np.array(motion_datas[ni, 0,:]) # hr ground truth
 
         flag = get_flag(name, motion_lists[ni])
-        HR = HR_EMA(HR, flag)
+        HR = HR_EMA(HR, _, flag, type=0)
 
         length = np.array(motion_datas[ni, 1,:]).shape[0]
         
