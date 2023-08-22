@@ -263,9 +263,9 @@ def CGU_cali(excel_path, cali_flag=0):
                 
         hr_pred = np.array(trans_str2list(df['HR(Pred)'][i]))
 
-        flag = get_flag(tester, motion)
-        ema_hr = HR_EMA(hr_pred, flag, type=1)
-        hr_pred = np.array(ema_hr)
+        # flag = get_flag(tester, motion)
+        # ema_hr = HR_EMA(hr_pred, _, flag, type=1)
+        # hr_pred = np.array(ema_hr)
 
         Dh = np.mean(hr_pred[40:60]) - np.mean(cali_hr[40:60])
     
