@@ -252,7 +252,6 @@ def CGU_cali(excel_path, cali_flag=0):
 
         if cali_flag == 0:
             cali_hr = hr_gt
-            p=0.4
         else:
             if '1' in motion:
                 cali_hr = np.array(radar_hr)
@@ -263,9 +262,9 @@ def CGU_cali(excel_path, cali_flag=0):
                 
         hr_pred = np.array(trans_str2list(df['HR(Pred)'][i]))
 
-        flag = get_flag(tester, motion)
-        ema_hr = HR_EMA(hr_pred, flag, type=1)
-        hr_pred = np.array(ema_hr)
+        # flag = get_flag(tester, motion)
+        # ema_hr = HR_EMA(hr_pred, 20, flag, type=1)
+        # hr_pred = np.array(ema_hr)
 
         Dh = np.mean(hr_pred[40:60]) - np.mean(cali_hr[40:60])
     
@@ -369,7 +368,6 @@ def CGU_split_round(excel_path):
               'Ride 1':[], 'Ride 2':[], 'Ride 3':[], 'Ride Average':[]
               }
 
-    p = 0.4
     for i in range(length):
         tester = df['Tester'][i]
         motion = df['motion'][i]

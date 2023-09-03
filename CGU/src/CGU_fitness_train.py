@@ -9,7 +9,7 @@ from data_process.load_data import *
 from data_process.show_data import *
 
 from model.lstm import *
-from self_calibration import CGU_cali
+from self_calibration import CGU_cali, CGU_split_round
 
 
 YAML_PATH = 'configs/CGU_fitness_config.yaml'
@@ -92,8 +92,8 @@ if __name__ == '__main__':
     name_labels = list(name_labels)
     # name_labels.sort(reverse=True)
     all_data_length = len(name_labels)
-    t_num = all_data_length    
-    # t_num = 73 # for train part dataset
+    # t_num = all_data_length    
+    t_num = 73 # for train part dataset
 
     print("Total test: ", len(name_labels[:t_num]))
     print("Testers: ", name_labels[:t_num])
@@ -110,13 +110,19 @@ if __name__ == '__main__':
         # Prepare Train data
         PowerTrain_ori, VitalTrain_ori, train_path_array, radar_hr, _  = generate_data_CGU_fitness(DATA_FOLDER_PATH, train_name, input_size=MODEL_INPUT-ATTR_INPUT, output_size=MODEL_OUTPUT)        
         PowerTrain = PowerTrain_ori.copy()
-        PowerTrain[:, :, :MODEL_INPUT-ATTR_INPUT], _, _ = Power_HR_Normalization(PowerTrain[:, :, :MODEL_INPUT-ATTR_INPUT])
+        if MODEL_INPUT >= 7:
+            PowerTrain[:, :, :MODEL_INPUT-ATTR_INPUT], _, _ = Power_HR_Normalization(PowerTrain[:, :, :MODEL_INPUT-ATTR_INPUT])
+        else:
+            PowerTrain[:, :, :], _, _ = Power_HR_Normalization(PowerTrain[:, :, :])
         VitalTrain = VitalTrain_ori
 
         # Prepare Test data 
         PowerTest_ori, VitalTest_ori, test_path_array, radar_hr, motion_list = generate_data_CGU_fitness(DATA_FOLDER_PATH, test_name, input_size=MODEL_INPUT-ATTR_INPUT, output_size=MODEL_OUTPUT)
         PowerTest = PowerTest_ori.copy()
-        PowerTest[:, :, :MODEL_INPUT-ATTR_INPUT], _, _ = Power_HR_Normalization(PowerTest[:, :, :MODEL_INPUT-ATTR_INPUT])
+        if MODEL_INPUT >= 7:
+            PowerTest[:, :, :MODEL_INPUT-ATTR_INPUT], _, _ = Power_HR_Normalization(PowerTest[:, :, :MODEL_INPUT-ATTR_INPUT])
+        else:
+            PowerTest[:, :, :], _, _ = Power_HR_Normalization(PowerTest[:, :, :])
         VitalTest = VitalTest_ori
 
         Radar_all_test = radar_hr if Radar_all_test.any() == 0 else np.concatenate((Radar_all_test, radar_hr), axis = 0)
@@ -195,9 +201,9 @@ if __name__ == '__main__':
                 train_list.append(train_loss/train_count)
                 val_list.append(val_loss/val_count)
 
-                if(epoch% 200 == 0):
+                if(epoch% 100 == 0):
                     execution_time = time.time() - start_time
-                    print('Epoch %d / %d  time %d   Train loss: %f     Val loss: %f'% (epoch, opts.nums_epoch, execution_time,   train_loss/train_count, val_loss/val_count)) 
+                    print('Epoch %d / %d  time %d   Train loss: %.2f     Val loss: %.2f'% (epoch, opts.nums_epoch, execution_time,   train_loss/train_count, val_loss/val_count)) 
 
             # model.zero_grad()            
             model.eval()
@@ -352,4 +358,8 @@ if __name__ == '__main__':
             result_models_paths[name] = path
             save_model(model_list[name], Save_model_folder, "{}".format(name))
    
+    CGU_split_round(EXCEL_NAME)
+    time.sleep(0.5)
     CGU_cali(EXCEL_NAME)
+    time.sleep(0.5)
+    CGU_split_round(EXCEL_NAME.replace(".xlsx", "-cali.xlsx"))
