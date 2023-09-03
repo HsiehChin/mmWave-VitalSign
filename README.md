@@ -68,8 +68,11 @@ In the CGU dataset, the training data includes two .csv files.
 |:------:|:-------------------------------------------------------------------------------------------------------:|
 | Tester |                                                Tester ID                                                |
 |  Class | Fitness category: divided into "Low", "Moderate", "High",  corresponding to the numbers 1, 2, 3 respectively. |
-|  Score |    Fitness score: a quantified score based on the amount of exercise in a week.  |
+|  Score |    Fitness score: a quantified score based on the amount of exercise in a week.                         |
 | Gender |                                           Participant's gender                                          |
+| Age    |                                           Participant's Age                                             |
+| BMI    |                                           Participant's BMI                                             |
+
 
 ## Run
 ### Step1. Download the mmWave-VitalSign project
